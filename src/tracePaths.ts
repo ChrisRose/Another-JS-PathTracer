@@ -877,7 +877,8 @@ onmessage = async (e: MessageEvent) => {
   const {
     iStart, iEnd, jStart, jEnd, width, imageMaps,
     sceneName = "cornellBoxMeshes",
-    totalPasses = 128
+    totalPasses = 128,
+    overrides = {} as Record<string, number>
   } = e.data;
 
   const scene = await importScene(sceneName);
@@ -888,9 +889,9 @@ onmessage = async (e: MessageEvent) => {
   skyImageData = scene.skyImageKey ? (imageMaps[scene.skyImageKey] as ImageData | undefined) : undefined;
   lensRadius    = scene.lensRadius   ?? 0;
   focusDistance = scene.focusDistance ?? 0;
-  sigma_t = scene.sigma_t ?? 0;
-  sigma_s = scene.sigma_s ?? 0;
-  phaseG  = scene.phaseG  ?? 0;
+  sigma_t = overrides.sigma_t !== undefined ? overrides.sigma_t : (scene.sigma_t ?? 0);
+  sigma_s = overrides.sigma_s !== undefined ? overrides.sigma_s : (scene.sigma_s ?? 0);
+  phaseG  = overrides.phaseG  !== undefined ? overrides.phaseG  : (scene.phaseG  ?? 0);
 
   // Precompute total emissive areas for MIS PDF calculations.
   totalEmissiveMeshArea = 0;

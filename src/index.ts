@@ -4,6 +4,20 @@ import { Color } from "./Color.js";
 
 const BASE = import.meta.env.BASE_URL;
 
+// ─── Per-scene controls ───────────────────────────────────────────────────────
+
+type ControlDef = { key: string; label: string; min: number; max: number; step: number; value: number; fmt?: (v: number) => string };
+
+const SCENE_CONTROLS: Record<string, ControlDef[]> = {
+  lab: [
+    { key: 'sigma_t', label: 'Density',    min: 0,     max: 0.15, step: 0.005, value: 0.030, fmt: v => v.toFixed(3) },
+    { key: 'sigma_s', label: 'Scatter',    min: 0,     max: 0.15, step: 0.005, value: 0.025, fmt: v => v.toFixed(3) },
+    { key: 'phaseG',  label: 'Anisotropy', min: -0.99, max: 0.99, step: 0.01,  value: 0.50,  fmt: v => (v >= 0 ? '+' : '') + v.toFixed(2) },
+  ],
+};
+
+let activeWorkers: Worker[] = [];
+
 const SCENES = [
   {
     id: "cornellBoxMeshes",
@@ -133,7 +147,25 @@ function renderGallery() {
 // ─── Renderer view ────────────────────────────────────────────────────────────
 
 function renderScene(sceneId: string, sceneTitle: string) {
+  const controls = SCENE_CONTROLS[sceneId] ?? [];
   const app = document.getElementById("app")!;
+
+  const controlsHtml = controls.length ? `
+    <div class="scene-controls">
+      ${controls.map(c => `
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-name">${c.label}</span>
+            <span class="control-value" id="val-${c.key}">${(c.fmt ?? (v => v.toFixed(3)))(c.value)}</span>
+          </div>
+          <input type="range" id="ctrl-${c.key}"
+            min="${c.min}" max="${c.max}" step="${c.step}" value="${c.value}" />
+        </div>
+      `).join('')}
+      <p class="controls-hint">Release to restart render</p>
+    </div>
+  ` : '';
+
   app.innerHTML = `
     <div class="renderer-page">
       <div class="renderer-nav">
@@ -147,10 +179,27 @@ function renderScene(sceneId: string, sceneTitle: string) {
           <p>Starting render…</p>
         </div>
       </div>
+      ${controlsHtml}
     </div>
   `;
 
-  startRender(sceneId);
+  const getOverrides = () => Object.fromEntries(controls.map(c => [c.key, c.value]));
+  startRender(sceneId, getOverrides());
+
+  for (const c of controls) {
+    const slider   = document.getElementById(`ctrl-${c.key}`) as HTMLInputElement;
+    const valueEl  = document.getElementById(`val-${c.key}`)!;
+    const fmt      = c.fmt ?? ((v: number) => v.toFixed(3));
+    slider.addEventListener('input', () => {
+      c.value = parseFloat(slider.value);
+      valueEl.textContent = fmt(c.value);
+    });
+    slider.addEventListener('change', () => {
+      const statusEl = document.getElementById("render-status");
+      if (statusEl) statusEl.textContent = "Restarting…";
+      startRender(sceneId, getOverrides());
+    });
+  }
 }
 
 async function loadImageData(url: string): Promise<ImageData | null> {
@@ -171,7 +220,11 @@ async function loadImageData(url: string): Promise<ImageData | null> {
   }
 }
 
-async function startRender(sceneName: string) {
+async function startRender(sceneName: string, overrides: Record<string, number> = {}) {
+  // Terminate any in-flight workers from a previous render.
+  for (const w of activeWorkers) w.terminate();
+  activeWorkers = [];
+
   // Preload scene-specific sky images before spawning workers.
   const imageMaps: Record<string, ImageData> = {};
   if (sceneName === "chess") {
@@ -198,6 +251,9 @@ async function startRender(sceneName: string) {
   const ctx    = canvas.getContext("2d")!;
   canvas.width  = width;
   canvas.height = height;
+  // Clear to background so a restarted render doesn't flash old pixels.
+  ctx.fillStyle = "#05050c";
+  ctx.fillRect(0, 0, width, height);
 
   // Raw linear-light accumulation buffers — gamma is applied at draw time.
   const accumR     = new Float32Array(width * height);
@@ -219,10 +275,8 @@ async function startRender(sceneName: string) {
 
   function swapInCanvas() {
     const placeholder = document.getElementById("placeholder");
-    if (placeholder) {
-      placeholder.replaceWith(canvas);
-      canvas.style.display = "block";
-    }
+    if (placeholder) placeholder.replaceWith(canvas);
+    canvas.style.display = "block";
   }
 
   // ACES filmic tone mapping (Hill/Unreal approximation).
@@ -266,8 +320,9 @@ async function startRender(sceneName: string) {
         new URL("./tracePaths.ts", import.meta.url),
         { type: "module" }
       );
+      activeWorkers.push(worker);
 
-      worker.postMessage({ iStart, iEnd, jStart, jEnd, width, imageMaps, sceneName, totalPasses });
+      worker.postMessage({ iStart, iEnd, jStart, jEnd, width, imageMaps, sceneName, totalPasses, overrides });
 
       worker.onmessage = (e: MessageEvent) => {
         const { pass, pixelColors } = e.data as {

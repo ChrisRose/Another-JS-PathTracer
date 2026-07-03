@@ -577,7 +577,7 @@ for (const [cx, cz] of [[-0.7, 2.3], [0.2, 3.35], [0.95, 2.4]] as [number, numbe
 
 // Floating sphere — placed directly in the window beam to cast a god-ray shadow
 sceneObjects.push(new Sphere({
-  center: new Point(2.2, 3.2, 1.8),
+  center: new Point(1.2, 3.0, 2.0),
   radius: 0.40,
   name: "floatingSphere",
   material: new Material({ albedo: new Color(0.08, 0.08, 0.10) }),

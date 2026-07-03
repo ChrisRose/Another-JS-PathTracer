@@ -448,7 +448,7 @@ sceneObjects.push(new Rectangle({
 // ─── Skylight — ceiling panel above the hole, aimed down into the room ────────
 // Panel sits just above the ceiling gap (x=[2,4], z=[1,3]) at y=CEILING_Y+0.1.
 // Warm sunlight colour; high emissive value drives the volumetric god rays.
-const sunMat = new Material({ albedo: new Color(1, 0.95, 0.80), emissive: new Color(200, 180, 120) });
+const sunMat = new Material({ albedo: new Color(1, 0.95, 0.80), emissive: new Color(90, 80, 55) });
 const LY = CEILING_Y + 0.1;
 sceneObjects.push(new Mesh({
   name: "skylightPanel",

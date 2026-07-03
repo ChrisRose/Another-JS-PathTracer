@@ -575,6 +575,14 @@ for (const [cx, cz] of [[-0.7, 2.3], [0.2, 3.35], [0.95, 2.4]] as [number, numbe
   for (const o of candle(cx, TABLE_Y, cz)) sceneObjects.push(o);
 }
 
+// Floating sphere — placed directly in the window beam to cast a god-ray shadow
+sceneObjects.push(new Sphere({
+  center: new Point(2.2, 3.2, 1.8),
+  radius: 0.40,
+  name: "floatingSphere",
+  material: new Material({ albedo: new Color(0.08, 0.08, 0.10) }),
+}));
+
 // Pencil — yellow, lying diagonally on paper
 {
   const py = TABLE_Y + 0.006;

@@ -263,8 +263,10 @@ sceneObjects.push(new Rectangle({
   normal: new Vector(1, 0, 0), orientation: "yzAxis",
   material: wallMat,
 }));
-// Room ceiling
-sceneObjects.push(new Rectangle({ corner: new Point(-4, CEILING_Y, -3), v1: new Vector(1, 0, 0), v2: new Vector(0, 0, 1), width: 8, height: 13, normal: new Vector(0, -1, 0), orientation: "xzAxis", material: wallMat }));
+// Room ceiling — split into 3 pieces with a skylight hole at x=[2,4], z=[1,3] (upper right)
+sceneObjects.push(new Rectangle({ corner: new Point(-4, CEILING_Y, -3), v1: new Vector(1, 0, 0), v2: new Vector(0, 0, 1), width: 6,  height: 13, normal: new Vector(0, -1, 0), orientation: "xzAxis", material: wallMat }));
+sceneObjects.push(new Rectangle({ corner: new Point(2,  CEILING_Y, -3), v1: new Vector(1, 0, 0), v2: new Vector(0, 0, 1), width: 2,  height: 4,  normal: new Vector(0, -1, 0), orientation: "xzAxis", material: wallMat }));
+sceneObjects.push(new Rectangle({ corner: new Point(2,  CEILING_Y,  3), v1: new Vector(1, 0, 0), v2: new Vector(0, 0, 1), width: 2,  height: 7,  normal: new Vector(0, -1, 0), orientation: "xzAxis", material: wallMat }));
 // Baseboards — left wall, back face, right wall
 sceneObjects.push(new Rectangle({   // left wall baseboard
   corner: new Point(-4, -0.6, -3),
@@ -434,77 +436,26 @@ for (const o of candle(2.50, SY1, 5.85)) sceneObjects.push(o);
 shelfSphere("ru1", facetedRose,     2.28, 5.40, SY2, 0.12);
 shelfSphere("ru2", facetedCrystal,  2.78, 5.68, SY2, 0.10);
 
-// ─── Right wall with window ───────────────────────────────────────────────────
-const WY0 = 0.5, WY1 = 4.5;
-const WZ0 = 1.6, WZ1 = 2.0;
-
+// ─── Right wall — plain, no window ───────────────────────────────────────────
 sceneObjects.push(new Rectangle({
   corner: new Point(4, -0.6, -3),
   v1: new Vector(0, 1, 0), v2: new Vector(0, 0, 1),
-  width: 13, height: WY0 + 0.6,
-  normal: new Vector(-1, 0, 0), orientation: "yzAxis",
-  material: wallMat,
-}));
-// (no panel above window — window runs to ceiling)
-sceneObjects.push(new Rectangle({
-  corner: new Point(4, WY0, -3),
-  v1: new Vector(0, 1, 0), v2: new Vector(0, 0, 1),
-  width: WZ0 + 3, height: WY1 - WY0,
-  normal: new Vector(-1, 0, 0), orientation: "yzAxis",
-  material: wallMat,
-}));
-sceneObjects.push(new Rectangle({
-  corner: new Point(4, WY0, WZ1),
-  v1: new Vector(0, 1, 0), v2: new Vector(0, 0, 1),
-  width: 10 - WZ1, height: WY1 - WY0,
+  width: 13, height: CEILING_Y + 0.6,
   normal: new Vector(-1, 0, 0), orientation: "yzAxis",
   material: wallMat,
 }));
 
-// ─── Window reveal (inset niche) ─────────────────────────────────────────────
-const WD = 0.5;
-// Sill
-sceneObjects.push(new Rectangle({
-  corner: new Point(4, WY0, WZ0),
-  v1: new Vector(1, 0, 0), v2: new Vector(0, 0, 1),
-  width: WD, height: WZ1 - WZ0,
-  normal: new Vector(0, 1, 0), orientation: "xzAxis",
-  material: wallMat,
-}));
-// Head
-sceneObjects.push(new Rectangle({
-  corner: new Point(4, WY1, WZ0),
-  v1: new Vector(1, 0, 0), v2: new Vector(0, 0, 1),
-  width: WD, height: WZ1 - WZ0,
-  normal: new Vector(0, -1, 0), orientation: "xzAxis",
-  material: wallMat,
-}));
-// Near-z jamb
-sceneObjects.push(new Rectangle({
-  corner: new Point(4, WY0, WZ0),
-  v1: new Vector(1, 0, 0), v2: new Vector(0, 1, 0),
-  width: WD, height: WY1 - WY0,
-  normal: new Vector(0, 0, 1), orientation: "xyAxis",
-  material: wallMat,
-}));
-// Far-z jamb
-sceneObjects.push(new Rectangle({
-  corner: new Point(4, WY0, WZ1),
-  v1: new Vector(1, 0, 0), v2: new Vector(0, 1, 0),
-  width: WD, height: WY1 - WY0,
-  normal: new Vector(0, 0, -1), orientation: "xyAxis",
-  material: wallMat,
-}));
-
-// ─── Window light ─────────────────────────────────────────────────────────────
-const LX = 4.50;
+// ─── Skylight — ceiling panel above the hole, aimed down into the room ────────
+// Panel sits just above the ceiling gap (x=[2,4], z=[1,3]) at y=CEILING_Y+0.1.
+// Warm sunlight colour; high emissive value drives the volumetric god rays.
 const sunMat = new Material({ albedo: new Color(1, 0.95, 0.80), emissive: new Color(200, 180, 120) });
+const LY = CEILING_Y + 0.1;
 sceneObjects.push(new Mesh({
-  name: "windowLight",
+  name: "skylightPanel",
   material: sunMat,
   meshObjects: [
-    new Triangle({ v1: new Vector(LX, WY0, WZ0), v2: new Vector(LX, WY0, WZ1), v3: new Vector(LX, WY1, WZ1), material: sunMat }),
-    new Triangle({ v1: new Vector(LX, WY0, WZ0), v2: new Vector(LX, WY1, WZ1), v3: new Vector(LX, WY1, WZ0), material: sunMat }),
+    new Triangle({ v1: new Vector(2, LY, 1), v2: new Vector(4, LY, 3), v3: new Vector(4, LY, 1), material: sunMat }),
+    new Triangle({ v1: new Vector(2, LY, 1), v2: new Vector(2, LY, 3), v3: new Vector(4, LY, 3), material: sunMat }),
   ],
 }));
 
